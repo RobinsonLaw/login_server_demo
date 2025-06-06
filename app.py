@@ -547,4 +547,23 @@ def internal_error(error):
     return jsonify({"error": "Internal server error"}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    """
+    Flask CLI entry point for local development
+    This file makes Flask CLI commands work properly
+    """
+    import os
+    import sys
+    from dotenv import load_dotenv
+
+    # Load environment variables
+    load_dotenv()
+
+    # Add the current directory to Python path
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+    # Import the Flask app from api/index.py
+    #from api.index import app, db #This line is not needed since app and db are already imported
+
+    # Make sure we're in the right context
+    with app.app_context():
+        app.run(debug=True, host='0.0.0.0', port=5000)
