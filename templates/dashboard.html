@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Flask API Server{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Welcome Header -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">Welcome back, {{ user.username }}!</h1>
+                <p class="text-gray-600">Member since {{ user.created_at.strftime('%B %Y') }}</p>
+            </div>
+            <div class="text-right">
+                <div class="text-2xl font-bold text-blue-600">{{ user_posts|length }}</div>
+                <div class="text-sm text-gray-600">Your Posts</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="grid md:grid-cols-3 gap-6">
+        <a href="/web/create-post" class="bg-blue-600 text-white p-6 rounded-lg shadow-md hover:bg-blue-700 transition">
+            <div class="flex items-center">
+                <i class="fas fa-plus text-2xl mr-4"></i>
+                <div>
+                    <div class="font-semibold">Create New Post</div>
+                    <div class="text-blue-100 text-sm">Share your thoughts</div>
+                </div>
+            </div>
+        </a>
+        
+        <a href="/web/profile" class="bg-green-600 text-white p-6 rounded-lg shadow-md hover:bg-green-700 transition">
+            <div class="flex items-center">
+                <i class="fas fa-user text-2xl mr-4"></i>
+                <div>
+                    <div class="font-semibold">Edit Profile</div>
+                    <div class="text-green-100 text-sm">Update your info</div>
+                </div>
+            </div>
+        </a>
+        
+        <a href="/web/posts" class="bg-purple-600 text-white p-6 rounded-lg shadow-md hover:bg-purple-700 transition">
+            <div class="flex items-center">
+                <i class="fas fa-newspaper text-2xl mr-4"></i>
+                <div>
+                    <div class="font-semibold">Browse Posts</div>
+                    <div class="text-purple-100 text-sm">Explore content</div>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <!-- Your Recent Posts -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">Your Recent Posts</h2>
+        {% if user_posts %}
+            <div class="space-y-4">
+                {% for post in user_posts %}
+                <div class="border-l-4 border-blue-500 pl-4 py-2">
+                    <h3 class="font-semibold text-gray-900">
+                        <a href="/web/posts/{{ post.id }}" class="hover:text-blue-600">{{ post.title }}</a>
+                    </h3>
+                    <p class="text-gray-600 text-sm mt-1">{{ post.content[:100] }}{% if post.content|length > 100 %}...{% endif %}</p>
+                    <div class="text-xs text-gray-500 mt-2">
+                        <i class="fas fa-clock mr-1"></i>{{ post.created_at.strftime('%B %d, %Y at %I:%M %p') }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% if user_posts|length >= 5 %}
+            <div class="mt-4 text-center">
+                <a href="/web/profile" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                    View all your posts <i class="fas fa-arrow-right ml-1"></i>
+                </a>
+            </div>
+            {% endif %}
+        {% else %}
+            <div class="text-center py-8 text-gray-500">
+                <i class="fas fa-edit text-4xl mb-4"></i>
+                <p class="mb-4">You haven't created any posts yet.</p>
+                <a href="/web/create-post" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition">
+                    Create Your First Post
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Recent Community Posts -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">Recent Community Posts</h2>
+        {% if recent_posts %}
+            <div class="space-y-4">
+                {% for post in recent_posts %}
+                <div class="flex items-start space-x-3 p-3 hover:bg-gray-50 rounded-md transition">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+                            <i class="fas fa-user text-gray-600 text-sm"></i>
+                        </div>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h4 class="font-medium text-gray-900">
+                            <a href="/web/posts/{{ post.id }}" class="hover:text-blue-600">{{ post.title }}</a>
+                        </h4>
+                        <p class="text-sm text-gray-600">by {{ post.author.username }}</p>
+                        <p class="text-xs text-gray-500 mt-1">{{ post.created_at.strftime('%B %d, %Y') }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="mt-4 text-center">
+                <a href="/web/posts" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                    View all posts <i class="fas fa-arrow-right ml-1"></i>
+                </a>
+            </div>
+        {% else %}
+            <p class="text-gray-500 text-center py-4">No posts available.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Flask API Server{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="/web" class="flex items-center space-x-2">
+                        <i class="fas fa-server text-blue-600 text-xl"></i>
+                        <span class="font-bold text-xl text-gray-900">Flask API</span>
+                    </a>
+                    <div class="hidden md:ml-6 md:flex md:space-x-8">
+                        <a href="/web" class="text-gray-900 hover:text-blue-600 px-3 py-2 text-sm font-medium">Home</a>
+                        <a href="/web/posts" class="text-gray-900 hover:text-blue-600 px-3 py-2 text-sm font-medium">Posts</a>
+                        <a href="/api" class="text-gray-900 hover:text-blue-600 px-3 py-2 text-sm font-medium">API Docs</a>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div id="auth-section">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t mt-12">
+        <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+            <div class="text-center text-gray-500 text-sm">
+                <p>&copy; 2024 Flask API Server. Built with Flask, SQLAlchemy, and deployed on Vercel.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Global API base URL
+        const API_BASE = '/api';
+        
+        // Check authentication status and update navigation
+        async function updateAuthSection() {
+            try {
+                const response = await fetch(`${API_BASE}/profile`);
+                const authSection = document.getElementById('auth-section');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    authSection.innerHTML = `
+                        <div class="flex items-center space-x-4">
+                            <a href="/web/dashboard" class="text-gray-900 hover:text-blue-600 px-3 py-2 text-sm font-medium">
+                                <i class="fas fa-tachometer-alt mr-1"></i>Dashboard
+                            </a>
+                            <a href="/web/create-post" class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700">
+                                <i class="fas fa-plus mr-1"></i>New Post
+                            </a>
+                            <div class="relative" x-data="{ open: false }">
+                                <button @click="open = !open" class="flex items-center space-x-2 text-gray-900 hover:text-blue-600">
+                                    <i class="fas fa-user-circle text-lg"></i>
+                                    <span class="text-sm font-medium">${data.user.username}</span>
+                                    <i class="fas fa-chevron-down text-xs"></i>
+                                </button>
+                                <div x-show="open" @click.away="open = false" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                                    <a href="/web/profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                        <i class="fas fa-user mr-2"></i>Profile
+                                    </a>
+                                    <button onclick="logout()" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                        <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    authSection.innerHTML = `
+                        <div class="flex items-center space-x-4">
+                            <a href="/web/login" class="text-gray-900 hover:text-blue-600 px-3 py-2 text-sm font-medium">Login</a>
+                            <a href="/web/register" class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700">Sign Up</a>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error checking auth status:', error);
+            }
+        }
+
+        // Logout function
+        async function logout() {
+            try {
+                await fetch(`${API_BASE}/logout`, { method: 'POST' });
+                window.location.href = '/web';
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', updateAuthSection);
+    </script>
+</body>
+</html>

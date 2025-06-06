@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}Create Post - Flask API Server{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <h1 class="text-3xl font-bold text-gray-900">Create New Post</h1>
+        <p class="text-gray-600 mt-2">Share your thoughts with the community</p>
+    </div>
+
+    <!-- Form -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <form id="createPostForm" class="space-y-6">
+            <div>
+                <label for="title" class="block text-sm font-medium text-gray-700 mb-2">Title</label>
+                <input type="text" id="title" name="title" required
+                       placeholder="Enter a compelling title for your post"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+
+            <div>
+                <label for="content" class="block text-sm font-medium text-gray-700 mb-2">Content</label>
+                <textarea id="content" name="content" rows="12" required
+                          placeholder="Write your post content here..."
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
+                <p class="text-sm text-gray-500 mt-1">You can use line breaks to format your content.</p>
+            </div>
+
+            <div class="flex items-center justify-between">
+                <a href="/web/dashboard" class="text-gray-600 hover:text-gray-800">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+                </a>
+                
+                <div class="space-x-4">
+                    <button type="button" onclick="previewPost()" 
+                            class="bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400 transition">
+                        <i class="fas fa-eye mr-2"></i>Preview
+                    </button>
+                    <button type="submit" id="submitBtn"
+                            class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition">
+                        <span id="submitText">Publish Post</span>
+                        <i id="submitSpinner" class="fas fa-spinner fa-spin ml-2 hidden"></i>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Preview Modal -->
+    <div id="previewModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-screen overflow-y-auto">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold text-gray-900">Post Preview</h2>
+                        <button onclick="closePreview()" class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+                    <div class="border-t pt-4">
+                        <h3 id="previewTitle" class="text-2xl font-bold text-gray-900 mb-4"></h3>
+                        <div id="previewContent" class="text-gray-700 leading-relaxed whitespace-pre-wrap"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Message Area -->
+    <div id="message" class="mt-4 hidden"></div>
+</div>
+
+<script>
+    function previewPost() {
+        const title = document.getElementById('title').value;
+        const content = document.getElementById('content').value;
+        
+        if (!title || !content) {
+            showMessage('Please fill in both title and content to preview.', 'error');
+            return;
+        }
+        
+        document.getElementById('previewTitle').textContent = title;
+        document.getElementById('previewContent').textContent = content;
+        document.getElementById('previewModal').classList.remove('hidden');
+    }
+
+    function closePreview() {
+        document.getElementById('previewModal').classList.add('hidden');
+    }
+
+    // Close modal when clicking outside
+    document.getElementById('previewModal').addEventListener('click', (e) => {
+        if (e.target.id === 'previewModal') {
+            closePreview();
+        }
+    });
+
+    document.getElementById('createPostForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const submitBtn = document.getElementById('submitBtn');
+        const submitText = document.getElementById('submitText');
+        const submitSpinner = document.getElementById('submitSpinner');
+        const messageDiv = document.getElementById('message');
+        
+        // Show loading state
+        submitBtn.disabled = true;
+        submitText.textContent = 'Publishing...';
+        submitSpinner.classList.remove('hidden');
+        messageDiv.classList.add('hidden');
+        
+        const formData = new FormData(e.target);
+        const data = {
+            title: formData.get('title'),
+            content: formData.get('content')
+        };
+        
+        try {
+            const response = await fetch('/api/posts', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+                showMessage('Post created successfully! Redirecting...', 'success');
+                setTimeout(() => {
+                    window.location.href = `/web/posts/${result.post.id}`;
+                }, 2000);
+            } else {
+                showMessage(result.error || 'Failed to create post', 'error');
+            }
+        } catch (error) {
+            showMessage('Network error. Please try again.', 'error');
+        } finally {
+            // Reset button state
+            submitBtn.disabled = false;
+            submitText.textContent = 'Publish Post';
+            submitSpinner.classList.add('hidden');
+        }
+    });
+
+    function showMessage(text, type) {
+        const messageDiv = document.getElementById('message');
+        const bgColor = type === 'success' ? 'bg-green-100 border-green-400 text-green-700' : 'bg-red-100 border-red-400 text-red-700';
+        const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+        
+        messageDiv.innerHTML = `
+            <div class="${bgColor} border px-4 py-3 rounded">
+                <i class="fas ${icon} mr-2"></i>
+                ${text}
+            </div>
+        `;
+        messageDiv.classList.remove('hidden');
+        
+        if (type === 'success') {
+            setTimeout(() => {
+                messageDiv.classList.add('hidden');
+            }, 5000);
+        }
+    }
+
+    // Auto-save draft functionality (optional enhancement)
+    let autoSaveTimer;
+    function autoSave() {
+        clearTimeout(autoSaveTimer);
+        autoSaveTimer = setTimeout(() => {
+            const title = document.getElementById('title').value;
+            const content = document.getElementById('content').value;
+            
+            if (title || content) {
+                localStorage.setItem('postDraft', JSON.stringify({ title, content }));
+            }
+        }, 2000);
+    }
+
+    // Load draft on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        const draft = localStorage.getItem('postDraft');
+        if (draft) {
+            const { title, content } = JSON.parse(draft);
+            if (title) document.getElementById('title').value = title;
+            if (content) document.getElementById('content').value = content;
+        }
+    });
+
+    // Add auto-save listeners
+    document.getElementById('title').addEventListener('input', autoSave);
+    document.getElementById('content').addEventListener('input', autoSave);
+
+    // Clear draft when post is successfully created
+    window.addEventListener('beforeunload', () => {
+        // Only clear if we're navigating to a post page (successful creation)
+        if (window.location.href.includes('/web/posts/')) {
+            localStorage.removeItem('postDraft');
+        }
+    });
+</script>
+{% endblock %}

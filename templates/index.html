@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Flask API Server{% endblock %}
+
+{% block content %}
+<div class="text-center">
+    <!-- Hero Section -->
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-4xl font-bold text-gray-900 sm:text-6xl mb-6">
+            Flask API Server
+        </h1>
+        <p class="text-xl text-gray-600 mb-8">
+            A modern Flask server with SQLAlchemy ORM, user authentication, and comprehensive CRUD operations.
+            Built for Vercel serverless deployment.
+        </p>
+        <div class="flex justify-center space-x-4 mb-12">
+            <a href="/web/posts" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition">
+                <i class="fas fa-newspaper mr-2"></i>View Posts
+            </a>
+            <a href="/api" class="border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-medium hover:bg-gray-50 transition">
+                <i class="fas fa-code mr-2"></i>API Documentation
+            </a>
+        </div>
+    </div>
+
+    <!-- Features Grid -->
+    <div class="grid md:grid-cols-3 gap-8 mb-12">
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <div class="text-blue-600 text-3xl mb-4">
+                <i class="fas fa-database"></i>
+            </div>
+            <h3 class="text-xl font-semibold mb-2">SQLAlchemy ORM</h3>
+            <p class="text-gray-600">Modern object-relational mapping with PostgreSQL database integration.</p>
+        </div>
+        
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <div class="text-green-600 text-3xl mb-4">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <h3 class="text-xl font-semibold mb-2">User Authentication</h3>
+            <p class="text-gray-600">Secure user registration, login, and session management with password hashing.</p>
+        </div>
+        
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <div class="text-purple-600 text-3xl mb-4">
+                <i class="fas fa-cloud"></i>
+            </div>
+            <h3 class="text-xl font-semibold mb-2">Vercel Deployment</h3>
+            <p class="text-gray-600">Optimized for serverless deployment with automatic scaling and global CDN.</p>
+        </div>
+    </div>
+
+    <!-- API Stats -->
+    <div class="bg-white rounded-lg shadow-md p-6" x-data="{ stats: null }" x-init="fetchStats()">
+        <h2 class="text-2xl font-bold mb-4">API Statistics</h2>
+        <div x-show="stats" class="grid md:grid-cols-2 gap-6">
+            <div class="text-center">
+                <div class="text-3xl font-bold text-blue-600" x-text="stats?.users || 0"></div>
+                <div class="text-gray-600">Registered Users</div>
+            </div>
+            <div class="text-center">
+                <div class="text-3xl font-bold text-green-600" x-text="stats?.posts || 0"></div>
+                <div class="text-gray-600">Total Posts</div>
+            </div>
+        </div>
+        <div x-show="!stats" class="text-center text-gray-500">
+            <i class="fas fa-spinner fa-spin mr-2"></i>Loading statistics...
+        </div>
+    </div>
+</div>
+
+<script>
+    function fetchStats() {
+        return {
+            stats: null,
+            async fetchStats() {
+                try {
+                    const response = await fetch('/api/health');
+                    const data = await response.json();
+                    this.stats = data.stats;
+                } catch (error) {
+                    console.error('Error fetching stats:', error);
+                }
+            }
+        }
+    }
+</script>
+{% endblock %}
