@@ -108,7 +108,7 @@ def home():
     return jsonify({
         "message": "Welcome to Flask API Server with SQLAlchemy",
         "database": "PostgreSQL with SQLAlchemy ORM",
-        "version": "2.0.0",
+        "version": "2.2.0-flask-cli",
         "endpoints": {
             "POST /register": "Register a new user",
             "POST /login": "Login user",
@@ -522,7 +522,7 @@ def health_check():
             "status": "healthy",
             "timestamp": datetime.utcnow().isoformat(),
             "database": "PostgreSQL with SQLAlchemy - Connected",
-            "version": "2.0.0",
+            "version": "2.2.0-flask-cli",
             "stats": {
                 "users": user_count,
                 "posts": post_count

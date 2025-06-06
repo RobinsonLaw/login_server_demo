@@ -138,7 +138,7 @@ def home():
         "message": "Flask API Server on Vercel",
         "database": "PostgreSQL with SQLAlchemy",
         "platform": "Vercel Serverless",
-        "version": "2.1.0-auto-migration",
+        "version": "2.2.0-flask-cli",
         "features": {
             "auto_migration": "Enabled",
             "flask_migrate": "Integrated",
@@ -457,8 +457,8 @@ def health_check():
             "timestamp": datetime.utcnow().isoformat(),
             "database": "PostgreSQL with SQLAlchemy - Connected",
             "platform": "Vercel Serverless",
-            "version": "2.1.0-auto-migration",
-            "migration_system": "Flask-Migrate with Auto-Upgrade",
+            "version": "2.2.0-flask-cli",
+            "migration_system": "Flask-Migrate with Auto-Upgrade + Flask CLI",
             "stats": {
                 "users": user_count,
                 "posts": post_count
@@ -470,7 +470,7 @@ def health_check():
             "timestamp": datetime.utcnow().isoformat(),
             "database": f"PostgreSQL - Error: {str(e)}",
             "platform": "Vercel Serverless",
-            "version": "2.1.0-auto-migration"
+            "version": "2.2.0-flask-cli"
         }), 503
 
 # HTML Pages Routes
