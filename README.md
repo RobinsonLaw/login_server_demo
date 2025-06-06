@@ -224,7 +224,7 @@ vercel dev
 ## 🚀 Production Optimizations
 
 1. **Use Connection Pooling**:
-   ```python
+   \`\`\`python
    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
        'pool_size': 5,
        'pool_recycle': 300,

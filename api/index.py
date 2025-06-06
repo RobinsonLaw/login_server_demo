@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, session, render_template, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import secrets
@@ -23,6 +24,38 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 
 # Initialize extensions
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
+
+# Auto-Migration System
+def run_auto_migrations():
+    """Automatically run database migrations on startup"""
+    try:
+        # Check if migrations directory exists
+        migrations_dir = os.path.join(os.path.dirname(__file__), '..', 'migrations')
+        
+        if os.path.exists(migrations_dir):
+            print("🔄 Running database migrations...")
+            
+            # Import flask-migrate commands
+            from flask_migrate import upgrade
+            
+            # Run migrations
+            with app.app_context():
+                try:
+                    upgrade()
+                    print("✅ Database migrations completed successfully")
+                    return True
+                except Exception as migration_error:
+                    print(f"⚠️ Migration failed: {migration_error}")
+                    print("🔧 Falling back to table creation...")
+                    return False
+        else:
+            print("📝 No migrations directory found, using table creation")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Auto-migration error: {e}")
+        return False
 
 # Models (inline for Vercel)
 class User(db.Model):
@@ -76,12 +109,20 @@ class Post(db.Model):
             data['author'] = self.author.username
         return data
 
-# Create tables (for first deployment)
+# Database initialization with auto-migration
 with app.app_context():
     try:
-        db.create_all()
+        # Try auto-migration first
+        migration_success = run_auto_migrations()
+        
+        if not migration_success:
+            # Fallback to table creation
+            print("🔧 Creating database tables...")
+            db.create_all()
+            print("✅ Database tables created successfully")
+            
     except Exception as e:
-        print(f"Database initialization error: {e}")
+        print(f"❌ Database initialization error: {e}")
 
 # Helper function
 def require_auth():
@@ -97,7 +138,12 @@ def home():
         "message": "Flask API Server on Vercel",
         "database": "PostgreSQL with SQLAlchemy",
         "platform": "Vercel Serverless",
-        "version": "2.0.0-vercel",
+        "version": "2.1.0-auto-migration",
+        "features": {
+            "auto_migration": "Enabled",
+            "flask_migrate": "Integrated",
+            "fallback_creation": "Available"
+        },
         "endpoints": {
             "POST /api/register": "Register a new user",
             "POST /api/login": "Login user",
@@ -411,7 +457,8 @@ def health_check():
             "timestamp": datetime.utcnow().isoformat(),
             "database": "PostgreSQL with SQLAlchemy - Connected",
             "platform": "Vercel Serverless",
-            "version": "2.0.0-vercel",
+            "version": "2.1.0-auto-migration",
+            "migration_system": "Flask-Migrate with Auto-Upgrade",
             "stats": {
                 "users": user_count,
                 "posts": post_count
@@ -423,7 +470,7 @@ def health_check():
             "timestamp": datetime.utcnow().isoformat(),
             "database": f"PostgreSQL - Error: {str(e)}",
             "platform": "Vercel Serverless",
-            "version": "2.0.0-vercel"
+            "version": "2.1.0-auto-migration"
         }), 503
 
 # HTML Pages Routes
