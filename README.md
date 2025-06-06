@@ -101,41 +101,96 @@ vercel --prod
 ## 🔄 Auto-Migration System
 
 ### **How It Works**
-1. **Startup Check**: App automatically checks for pending migrations
-2. **Auto-Upgrade**: Runs `flask db upgrade` on deployment
+1. **Startup Check**: App automatically checks for pending migrations on cold start
+2. **Auto-Upgrade**: Runs migrations automatically within the serverless function
 3. **Fallback Safety**: Creates tables if migrations fail
-4. **Zero Downtime**: Compatible with serverless cold starts
+4. **Zero Downtime**: Compatible with Vercel serverless cold starts
 
 ### **Development Workflow**
 \`\`\`bash
 # 1. Modify models in api/index.py
-# 2. Create migration
+# 2. Create migration locally
 python scripts/create_migration.py "Add user avatar field"
 
-# 3. Test locally
+# 3. Test migration locally
 python scripts/migration_status.py
+python scripts/manual_upgrade.py
 
-# 4. Deploy - auto-migration handles the rest!
+# 4. Commit and deploy to Vercel
+git add .
+git commit -m "Add user avatar field migration"
+git push origin main
+
+# 5. Deploy to Vercel (auto-migration runs on startup)
 vercel --prod
 \`\`\`
 
-### **Migration Toolkit**
+### **Migration Toolkit (Local Development)**
 \`\`\`bash
-# Check migration status
+# Check migration status (local)
 python scripts/migration_status.py
 
-# Manual migration (if needed)
+# Manual migration (local development)
 python scripts/manual_upgrade.py
 
-# Rollback to previous version
+# Rollback to previous version (local)
 python scripts/rollback_migration.py prev
 
-# Backup database
+# Backup database (works with any environment)
 python scripts/backup_database.py backup
 
-# Restore from backup
+# Restore from backup (works with any environment)
 python scripts/backup_database.py restore backup_file.sql
 \`\`\`
+
+### **Vercel Production Commands**
+\`\`\`bash
+# Deploy with auto-migration
+vercel --prod
+
+# Check deployment logs to see migration status
+vercel logs
+
+# Force redeploy if migration failed
+vercel --prod --force
+
+# Check function logs for migration errors
+vercel logs --follow
+\`\`\`
+
+### **Vercel Deployment & Migration**
+
+#### **How Auto-Migration Works on Vercel**
+- **Cold Start**: When Vercel starts your function, `run_auto_migrations()` executes
+- **Migration Check**: Function checks for pending migrations automatically
+- **Execution**: Migrations run within the serverless function context
+- **Fallback**: If migrations fail, app falls back to `db.create_all()`
+- **Logging**: Migration status appears in Vercel function logs
+
+#### **Vercel-Specific Commands**
+\`\`\`bash
+# Deploy with migration
+vercel --prod
+
+# Monitor deployment and migration
+vercel logs --follow
+
+# Check if migrations directory is deployed
+vercel ls
+
+# Environment variables for migration
+vercel env add DATABASE_URL
+vercel env add SECRET_KEY
+
+# Force redeploy if migration stuck
+vercel --prod --force
+\`\`\`
+
+#### **Migration Files in Vercel**
+- Migration files must be committed to git
+- Vercel deploys the entire repository including `migrations/` directory
+- Auto-migration runs during function cold start
+- No manual `flask db upgrade` needed in production
 
 ## 📡 API Endpoints
 
@@ -250,14 +305,22 @@ python scripts/migration_status.py
 
 #### **Migration Failures**
 \`\`\`bash
-# Check migration status
+# For local development
 python scripts/migration_status.py
-
-# Try manual upgrade
 python scripts/manual_upgrade.py
 
-# Rollback if needed
-python scripts/rollback_migration.py prev
+# For Vercel production
+# 1. Check deployment logs
+vercel logs
+
+# 2. Check if migration files are included in deployment
+vercel ls
+
+# 3. Force redeploy to retry auto-migration
+vercel --prod --force
+
+# 4. If auto-migration keeps failing, check database manually
+python scripts/migration_status.py  # (with production DATABASE_URL)
 \`\`\`
 
 #### **Cold Start Timeouts**
