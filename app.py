@@ -8,15 +8,44 @@ import os
 
 app = Flask(__name__)
 
+# # Configuration
+# app.config['SECRET_KEY'] = secrets.token_hex(16)
+# app.config['SQLALCHEMY_DATABASE_URI'] = (
+#     f"postgresql://{os.getenv('DB_USER', 'postgres')}:"
+#     f"{os.getenv('DB_PASSWORD', 'password')}@"
+#     f"{os.getenv('DB_HOST', 'localhost')}:"
+#     f"{os.getenv('DB_PORT', '5432')}/"
+#     f"{os.getenv('DB_NAME', 'flask_app')}"
+# )
+# app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# # Initialize extensions
+# db = SQLAlchemy(app)
+# migrate = Migrate(app, db)
 # Configuration
 app.config['SECRET_KEY'] = secrets.token_hex(16)
-app.config['SQLALCHEMY_DATABASE_URI'] = (
-    f"postgresql://{os.getenv('DB_USER', 'postgres')}:"
-    f"{os.getenv('DB_PASSWORD', 'password')}@"
-    f"{os.getenv('DB_HOST', 'localhost')}:"
-    f"{os.getenv('DB_PORT', '5432')}/"
-    f"{os.getenv('DB_NAME', 'flask_app')}"
-)
+
+# Use POSTGRES_URL if available, otherwise use individual variables
+postgres_url = os.getenv('POSTGRES_URL')
+
+if postgres_url:
+    # Fix dialect if needed (postgres:// -> postgresql://)
+    if postgres_url.startswith('postgres://'):
+        postgres_url = postgres_url.replace('postgres://', 'postgresql://', 1)
+    
+    app.config['SQLALCHEMY_DATABASE_URI'] = postgres_url
+    print("Using POSTGRES_URL for database connection")
+else:
+    # Fallback to individual environment variables
+    app.config['SQLALCHEMY_DATABASE_URI'] = (
+        f"postgresql://{os.getenv('DB_USER', 'postgres')}:"
+        f"{os.getenv('DB_PASSWORD', 'password')}@"
+        f"{os.getenv('DB_HOST', 'localhost')}:"
+        f"{os.getenv('DB_PORT', '5432')}/"
+        f"{os.getenv('DB_NAME', 'flask_app')}"
+    )
+    print("Using individual DB environment variables")
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Initialize extensions

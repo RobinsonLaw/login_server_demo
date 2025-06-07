@@ -22,6 +22,10 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     }
 }
 
+db_url = os.getenv('DATABASE_URL') or os.getenv('POSTGRES_URL')
+if db_url and db_url.startswith('postgres://'):
+    db_url = db_url.replace('postgres://', 'postgresql://', 1)
+app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 # Initialize extensions
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
