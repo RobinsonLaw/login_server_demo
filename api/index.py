@@ -479,6 +479,9 @@ def health_check():
         }), 503
 
 # HTML Pages Routes
+@app.route('/.env')
+def block_env():
+    return '', 404
 @app.route('/web')
 @app.route('/web/')
 def web_home():
