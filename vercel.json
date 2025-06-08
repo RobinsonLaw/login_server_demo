@@ -20,10 +20,6 @@
       "dest": "api/static/favicon.png"
     },
     {
-      "src": "/icon.ico",
-      "dest": "api/static/favicon.ico"
-    },
-    {
       "src": "/api/(.*)",
       "dest": "api/index.py"
     },
