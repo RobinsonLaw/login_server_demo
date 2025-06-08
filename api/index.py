@@ -534,13 +534,13 @@ def web_profile():
     user_posts = Post.query.filter_by(user_id=session['user_id']).order_by(Post.created_at.desc()).all()
     
     return render_template('profile.html', user=user, user_posts=user_posts)
-@app.route('/favicon.ico')
-def favicon():
-    return send_from_directory(
-        os.path.join(app.root_path, 'static'),
-        'favicon.ico',
-        mimetype='image/vnd.microsoft.icon'
-    )    
+# @app.route('/favicon.ico')
+# def favicon():
+#     return send_from_directory(
+#         os.path.join(app.root_path, 'static'),
+#         'favicon.ico',
+#         mimetype='image/vnd.microsoft.icon'
+#     )    
 # Error handlers
 @app.errorhandler(404)
 def not_found(error):
