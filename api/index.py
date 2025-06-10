@@ -8,8 +8,8 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 # Initialize Flask app
-# app = Flask(__name__)
-app = Flask(__name__, static_folder=None)
+app = Flask(__name__)
+# app = Flask(__name__, static_folder=None)
 
 # Vercel-specific configuration
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', secrets.token_hex(16))
