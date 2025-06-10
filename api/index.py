@@ -535,15 +535,15 @@ def web_profile():
     user_posts = Post.query.filter_by(user_id=session['user_id']).order_by(Post.created_at.desc()).all()
     
     return render_template('profile.html', user=user, user_posts=user_posts)
-@app.route('/favicon.ico')
-def favicon():
-    return send_from_directory('public', 'favicon.ico')
-@app.route('/favicon.png')
-def favicon_png():
-    return send_from_directory('public', 'favicon.png')
-@app.route('/static/<path:filename>')
-def static_files(filename):
-    return send_from_directory('public/static', filename)
+# @app.route('/favicon.ico')
+# def favicon():
+#     return send_from_directory('public', 'favicon.ico')
+# @app.route('/favicon.png')
+# def favicon_png():
+#     return send_from_directory('public', 'favicon.png')
+# @app.route('/static/<path:filename>')
+# def static_files(filename):
+#     return send_from_directory('public/static', filename)
 # @app.route('/static/<path:filename>')
 # def static_files(filename):
 #     folder = os.path.join(app.root_path, 'public/static')
