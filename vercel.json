@@ -7,7 +7,18 @@
     }
   ],
   "routes": [
-
+    {
+      "src": "/static/(.*)",
+      "dest": "/static/$1"
+    },
+    {
+      "src": "/favicon.ico",
+      "dest": "/favicon.ico"
+    },
+    {
+      "src": "/favicon.png",
+      "dest": "/favicon.png"
+    },
     {
       "src": "/api/(.*)",
       "dest": "api/index.py"
@@ -20,5 +31,4 @@
   "env": {
     "PYTHONPATH": "$PYTHONPATH:."
   }
-  
 }
