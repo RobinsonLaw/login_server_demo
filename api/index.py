@@ -541,9 +541,9 @@ def web_profile():
 # @app.route('/favicon.png')
 # def favicon_png():
 #     return send_from_directory('public', 'favicon.png')
-# @app.route('/static/<path:filename>')
-# def static_files(filename):
-#     return send_from_directory('public/static', filename)
+@app.route('/static/<path:filename>')
+def static_files(filename):
+    return send_from_directory('public/static', filename)
 # @app.route('/static/<path:filename>')
 # def static_files(filename):
 #     folder = os.path.join(app.root_path, 'public/static')
