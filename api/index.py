@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 # Initialize Flask app
 # app = Flask(__name__)
+ADMIN_USERNAME = os.getenv('ADMIN_USERNAME')
 app = Flask(__name__, static_folder=None)
 
 # Vercel-specific configuration
@@ -362,7 +363,17 @@ def get_posts():
     try:
         page = request.args.get('page', 1, type=int)
         per_page = min(request.args.get('per_page', 10, type=int), 50)
-        
+                # If user is logged in, show all posts
+        if 'user_id' in session:
+            posts_query = Post.query.order_by(Post.created_at.desc())
+        else:
+            # Only show admin posts to guests
+            admin_user = User.query.filter_by(username="admin").first()
+            if admin_user:
+                posts_query = Post.query.filter_by(user_id=admin_user.id).order_by(Post.created_at.desc())
+            else:
+                posts_query = Post.query.filter_by(user_id=None)  # No posts
+
         posts = Post.query.order_by(Post.created_at.desc()).paginate(
             page=page,
             per_page=per_page,
@@ -506,14 +517,28 @@ def web_dashboard():
     recent_posts = Post.query.order_by(Post.created_at.desc()).limit(10).all()
     
     return render_template('dashboard.html', user=user, user_posts=user_posts, recent_posts=recent_posts)
-
 @app.route('/web/posts')
 def web_posts():
     page = request.args.get('page', 1, type=int)
-    posts = Post.query.order_by(Post.created_at.desc()).paginate(
+    if 'user_id' in session:
+        posts_query = Post.query.order_by(Post.created_at.desc())
+    else:
+        admin_user = User.query.filter_by(username="admin").first()
+        if admin_user:
+            posts_query = Post.query.filter_by(user_id=admin_user.id).order_by(Post.created_at.desc())
+        else:
+            posts_query = Post.query.filter_by(user_id=None)
+    posts = posts_query.paginate(
         page=page, per_page=10, error_out=False
     )
     return render_template('posts.html', posts=posts)
+# @app.route('/web/posts')
+# def web_posts():
+#     page = request.args.get('page', 1, type=int)
+#     posts = Post.query.order_by(Post.created_at.desc()).paginate(
+#         page=page, per_page=10, error_out=False
+#     )
+#     return render_template('posts.html', posts=posts)
 
 @app.route('/web/posts/<int:post_id>')
 def web_post_detail(post_id):
