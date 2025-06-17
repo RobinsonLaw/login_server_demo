@@ -599,4 +599,7 @@ def internal_error(error):
 
 # For local development
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)
+    # app.run(ssl_context=('api/mylocal.dev.pem', 'api/mylocal.dev-key.pem'))
+
+
