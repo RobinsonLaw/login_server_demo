@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Base URL for the Flask server
-BASE_URL = "http://localhost:5000"
+BASE_URL = "http://localhost:5001"
 
 def test_api():
     print("🧪 Testing Flask API Server with SQLAlchemy")

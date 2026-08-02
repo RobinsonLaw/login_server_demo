@@ -51,38 +51,39 @@
     </div>
 
     <!-- API Stats -->
-    <div class="bg-white rounded-lg shadow-md p-6" x-data="{ stats: null }" x-init="fetchStats()">
-        <h2 class="text-2xl font-bold mb-4">API Statistics</h2>
-        <div x-show="stats" class="grid md:grid-cols-2 gap-6">
-            <div class="text-center">
-                <div class="text-3xl font-bold text-blue-600" x-text="stats?.users || 0"></div>
-                <div class="text-gray-600">Registered Users</div>
-            </div>
-            <div class="text-center">
-                <div class="text-3xl font-bold text-green-600" x-text="stats?.posts || 0"></div>
-                <div class="text-gray-600">Total Posts</div>
-            </div>
+<div class="bg-white rounded-lg shadow-md p-6" x-data="fetchStats()">
+    <h2 class="text-2xl font-bold mb-4">API Statistics</h2>
+
+    <div x-show="stats" class="grid md:grid-cols-2 gap-6">
+        <div class="text-center">
+            <div class="text-3xl font-bold text-blue-600" x-text="stats?.users || 0"></div>
+            <div class="text-gray-600">Registered Users</div>
         </div>
-        <div x-show="!stats" class="text-center text-gray-500">
-            <i class="fas fa-spinner fa-spin mr-2"></i>Loading statistics...
+        <div class="text-center">
+            <div class="text-3xl font-bold text-green-600" x-text="stats?.posts || 0"></div>
+            <div class="text-gray-600">Total Posts</div>
         </div>
+    </div>
+
+    <div x-show="!stats" class="text-center text-gray-500">
+        <i class="fas fa-spinner fa-spin mr-2"></i>Loading statistics...
     </div>
 </div>
 
 <script>
-    function fetchStats() {
-        return {
-            stats: null,
-            async fetchStats() {
-                try {
-                    const response = await fetch('/api/health');
-                    const data = await response.json();
-                    this.stats = data.stats;
-                } catch (error) {
-                    console.error('Error fetching stats:', error);
-                }
+function fetchStats() {
+    return {
+        stats: null,
+        async init() {
+            try {
+                const response = await fetch('/api/health');
+                const data = await response.json();
+                this.stats = data.stats;
+            } catch (error) {
+                console.error('Error fetching stats:', error);
             }
         }
     }
+}
 </script>
 {% endblock %}

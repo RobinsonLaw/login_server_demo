@@ -11,7 +11,8 @@ load_dotenv()
 # app = Flask(__name__)
 ADMIN_USERNAME = os.getenv('ADMIN_USERNAME')
 app = Flask(__name__, static_folder=None)
-
+# Fix for Flask 3.0+: prevents escaping < and > to \u003C and \u003E
+app.json.ensure_ascii = False
 # Vercel-specific configuration
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', secrets.token_hex(16))
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
@@ -160,9 +161,9 @@ def home():
             "GET /api/users": "Get all users (paginated)",
             "POST /api/posts": "Create a new post (requires login)",
             "GET /api/posts": "Get all posts (paginated)",
-            "GET /api/posts/<id>": "Get specific post",
-            "PUT /api/posts/<id>": "Update post (requires login)",
-            "DELETE /api/posts/<id>": "Delete post (requires login)",
+            "GET /api/posts/{id}": "Get specific post",
+            "PUT /api/posts/{id}": "Update post (requires login)",
+            "DELETE /api/posts/{id}": "Delete post (requires login)",
             "GET /api/health": "Health check"
         }
     })
@@ -599,7 +600,7 @@ def internal_error(error):
 
 # For local development
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5001, debug=True)
     # app.run(ssl_context=('api/mylocal.dev.pem', 'api/mylocal.dev-key.pem'))
 
 

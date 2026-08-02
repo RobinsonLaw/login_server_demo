@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Base URL - change this to your Vercel deployment URL
-BASE_URL = os.getenv('VERCEL_URL', 'http://localhost:5000')
+BASE_URL = os.getenv('VERCEL_URL', 'http://localhost:5001')
 if not BASE_URL.startswith('http'):
     BASE_URL = f'https://{BASE_URL}'
 
