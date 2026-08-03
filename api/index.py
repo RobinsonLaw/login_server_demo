@@ -5,6 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import secrets
 import os
+import logging
 from dotenv import load_dotenv
 load_dotenv()
 # Initialize Flask app
@@ -33,30 +34,52 @@ app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 # Initialize extensions
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
-
+logger = logging.getLogger(__name__)
 # Auto-Migration System
+_LOCK_CONN = None
 def run_auto_migrations():
     """Automatically run database migrations on startup"""
+    global _LOCK_CONN
+
+    if _LOCK_CONN is not None:
+        return True
     try:
         # Check if migrations directory exists
         migrations_dir = os.path.join(os.path.dirname(__file__), '..', 'migrations')
         
         if os.path.exists(migrations_dir):
-            print("🔄 Running database migrations...")
-            
+    
             # Import flask-migrate commands
             from flask_migrate import upgrade
-            
+            from sqlalchemy import text
+            LOCK_ID = 8273918237
             # Run migrations
             with app.app_context():
-                try:
-                    upgrade()
-                    print("✅ Database migrations completed successfully")
-                    return True
-                except Exception as migration_error:
-                    print(f"⚠️ Migration failed: {migration_error}")
-                    print("🔧 Falling back to table creation...")
-                    return False
+                
+                db = app.extensions.get("sqlalchemy")
+                if db:
+                    conn = db.engine.connect()
+                    acquired = conn.execute(text(f"SELECT pg_try_advisory_lock({LOCK_ID})")).scalar()
+                    if not acquired:
+                        print("⏩ Another worker/instance is running migrations, skipping.")
+                        conn.close()
+                        return True
+                    _LOCK_CONN = conn
+
+                    print("🔄 Running database migrations...")
+                    try:    
+                        upgrade()
+                        print("✅ Database migrations completed successfully")
+                        return True
+                    except Exception as migration_error:
+                        print(f"⚠️ Migration failed: {migration_error}")
+                        print("🔧 Falling back to table creation...")
+                        if _LOCK_CONN:
+                            _LOCK_CONN.close()
+                            _LOCK_CONN = None
+                        return False
+                
+   
         else:
             print("📝 No migrations directory found, using table creation")
             return False

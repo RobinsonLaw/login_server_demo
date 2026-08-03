@@ -32,7 +32,7 @@ A comprehensive Flask API server with SQLAlchemy ORM, auto-migration system, and
 
 - **Vercel account** for deployment
 - **PostgreSQL database** (Neon, Supabase, or other cloud provider)
-- **Python 3.8+** for local development
+- **Python 3.12+** for local development
 - **Git** for version control
 
 ## 🛠️ Quick Setup
@@ -42,27 +42,48 @@ A comprehensive Flask API server with SQLAlchemy ORM, auto-migration system, and
 Choose a cloud PostgreSQL provider:
 
 #### **Option A: Neon (Recommended)**
-\`\`\`bash
+```bash
 # 1. Sign up at neon.tech
 # 2. Create a new project
 # 3. Copy the connection string
 # Format: postgresql://user:password@host:port/database
-\`\`\`
+```
 
 #### **Option B: Supabase**
-\`\`\`bash
+```bash
 # 1. Sign up at supabase.com
 # 2. Create a new project
 # 3. Go to Settings > Database
 # 4. Copy the connection string
-\`\`\`
+```
+
+### ⚙️ Setting Up Environment Variables in Vercel Dashboard
+
+If you have connected your GitHub repository directly to Vercel, you do not need to use the Vercel CLI (`vercel env add`). You can manage your environment variables directly from the dashboard:
+
+1. **Navigate to Project Settings:**
+   * Log in to the [Vercel Dashboard](https://vercel.com).
+   * Select your project (`login_server_demo`).
+   * Click on **Settings** in the top navigation bar.
+
+2. **Add Environment Variables:**
+   * Select **Environment Variables** from the left sidebar.
+   * Add your required key-value pairs:
+     * **`DATABASE_URL`**: `postgresql://user:password@host:port/database`
+     * **`SECRET_KEY`**: `your-secret-key-here`
+   * Select the target environments (**Production**, **Preview**, **Development**).
+   * Click **Save**.
+
+3. **Apply Changes (Redeploy):**
+   * Environment variables are injected during build time. Go to **Deployments** → click `...` next to the latest build → select **Redeploy**.
+   * Alternatively, push a new commit to `main` to trigger an automatic rebuild and deployment.
 
 ### 2. **Local Development**
 
-\`\`\`bash
+```bash
 # Clone the repository
 git clone <your-repo>
-cd flask-vercel-app
+cd login_server_demo
 
 # Install dependencies
 pip install -r requirements.txt
@@ -79,25 +100,26 @@ python scripts/setup_database.py
 
 # Run locally
 python api/index.py
-\`\`\`
+```
 
-### 3. **Deploy to Vercel**
+## 🛠️ Deploy use vercel dev test in local
+** Also use cloud database **
+```bash
+# Step 1: Set up Python 3.12 Virtual Environment
+python3.12 -m venv venv
+source venv/bin/activate
+pip install -r requirements-local.txt
 
-\`\`\`bash
-# Install Vercel CLI
+# Step 2: Install and start PostgreSQL 17 via Homebrew
+brew install postgresql@17
+brew services start postgresql@17
+psql --version
+
+# Step 3: Run Local Development Server with Vercel CLI (loads .env automatically)
 npm install -g vercel
-
-# Login to Vercel
 vercel login
-
-# Set environment variables in Vercel
-vercel env add DATABASE_URL
-vercel env add SECRET_KEY
-
-# Deploy
-vercel --prod
-\`\`\`
-
+vercel dev --listen 5001
+```
 ## 🔄 Auto-Migration System
 
 ### **How It Works**
@@ -106,27 +128,19 @@ vercel --prod
 3. **Fallback Safety**: Creates tables if migrations fail
 4. **Zero Downtime**: Compatible with Vercel serverless cold starts
 
-### **Development Workflow**
-\`\`\`bash
-# 1. Modify models in api/index.py
-# 2. Create migration locally
-python scripts/create_migration.py "Add user avatar field"
+### **Migrate from cloud database to local database**
+```bash
 
-# 3. Test migration locally
-python scripts/migration_status.py
-python scripts/manual_upgrade.py
+DATABASE_URL="postgresql://postgres.username:password@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres" python scripts/init_migrations_fixed.py
 
-# 4. Commit and deploy to Vercel
-git add .
-git commit -m "Add user avatar field migration"
-git push origin main
+python scripts/backup_database.py backup 
+// for no password
+DATABASE_URL="postgresql://username:@localhost:5432/postgres" python scripts/backup_database.py restore backup_postgres_XXXX_XXXX.sql
 
-# 5. Deploy to Vercel (auto-migration runs on startup)
-vercel --prod
-\`\`\`
+```
 
 ### **Migration Toolkit (Local Development)**
-\`\`\`bash
+```bash
 # Check migration status (local)
 python scripts/migration_status.py
 
@@ -141,56 +155,21 @@ python scripts/backup_database.py backup
 
 # Restore from backup (works with any environment)
 python scripts/backup_database.py restore backup_file.sql
-\`\`\`
+```
 
-### **Vercel Production Commands**
-\`\`\`bash
-# Deploy with auto-migration
-vercel --prod
 
-# Check deployment logs to see migration status
-vercel logs
-
-# Force redeploy if migration failed
-vercel --prod --force
-
-# Check function logs for migration errors
-vercel logs --follow
-\`\`\`
 
 ### **Vercel Deployment & Migration**
 
 #### **How Auto-Migration Works on Vercel**
-- **Cold Start**: When Vercel starts your function, `run_auto_migrations()` executes
-- **Migration Check**: Function checks for pending migrations automatically
-- **Execution**: Migrations run within the serverless function context
-- **Fallback**: If migrations fail, app falls back to `db.create_all()`
-- **Logging**: Migration status appears in Vercel function logs
-
-#### **Vercel-Specific Commands**
-\`\`\`bash
-# Deploy with migration
-vercel --prod
-
-# Monitor deployment and migration
-vercel logs --follow
-
-# Check if migrations directory is deployed
-vercel ls
-
-# Environment variables for migration
-vercel env add DATABASE_URL
-vercel env add SECRET_KEY
-
-# Force redeploy if migration stuck
-vercel --prod --force
-\`\`\`
+- **Cold Start Execution**: When Vercel initializes a serverless container instance, `run_auto_migrations()` is invoked before handling the first request.
+- **Migration Check**: The app queries the `alembic_version` table to automatically detect and apply pending migrations.
+- **Execution**: Migrations run directly within the serverless function environment using transaction locks to prevent concurrency issues.
+- **Logging**: Comprehensive migration status and step-by-step progress are recorded directly in Vercel function logs.
 
 #### **Migration Files in Vercel**
-- Migration files must be committed to git
-- Vercel deploys the entire repository including `migrations/` directory
-- Auto-migration runs during function cold start
-- No manual `flask db upgrade` needed in production
+- **Git Tracking**: The `migrations/` directory must be committed to git so migration scripts deploy alongside app code.
+- **Zero-Touch Deployments**: Auto-migration eliminates the need to run manual `flask db upgrade` commands in production.
 
 ## 📡 API Endpoints
 
@@ -239,22 +218,22 @@ All endpoints are prefixed with `/api/`:
 ## 🧪 Testing
 
 ### **Local Testing**
-\`\`\`bash
+```bash
 # Test API endpoints
 python test_api.py
 
 # Test with sample data
 python scripts/seed_data.py
-\`\`\`
+```
 
 ### **Production Testing**
-\`\`\`bash
+```bash
 # Set your Vercel URL
 export VERCEL_URL="your-app.vercel.app"
 
 # Test production API
 python test_vercel_api.py
-\`\`\`
+```
 
 ## 🔧 Configuration
 
@@ -262,49 +241,70 @@ python test_vercel_api.py
 
 Set these in Vercel dashboard or CLI:
 
-\`\`\`bash
+```bash
 # Required
 DATABASE_URL=postgresql://user:password@host:port/database
 SECRET_KEY=your-super-secret-key-here
 
 # Optional (for enhanced features)
 FLASK_ENV=production
-\`\`\`
+```
 
 ### **Vercel Configuration**
 
 The `vercel.json` file is pre-configured for optimal performance:
 
-\`\`\`json
+```json
 {
-  "version": 2,
-  "builds": [{"src": "api/index.py", "use": "@vercel/python"}],
-  "routes": [
-    {"src": "/api/(.*)", "dest": "api/index.py"},
-    {"src": "/(.*)", "dest": "api/index.py"}
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "builds": [
+    {
+      "src": "api/**/*.py",
+      "use": "@vercel/python"
+    },
+    {
+      "src": "public/**/*",
+      "use": "@vercel/static"
+    }
   ],
-  "functions": {
-    "api/index.py": {"maxDuration": 30}
-  }
+  "routes": [
+    {
+      "src": "/static/(.*)",
+      "dest": "/public/static/$1"
+    },
+    {
+      "src": "/favicon.ico",
+      "dest": "/public/favicon.ico"
+    },
+    {
+      "src": "/favicon.png",
+      "dest": "/public/favicon.png"
+    },
+    
+    {
+      "src": "/(.*)",
+      "dest": "/api/index.py"
+    }
+  ]
 }
-\`\`\`
+```
 
 ## 🚨 Troubleshooting
 
 ### **Common Issues**
 
 #### **Database Connection Errors**
-\`\`\`bash
+```bash
 # Check DATABASE_URL format
 echo $DATABASE_URL
 # Should be: postgresql://user:pass@host:port/db
 
 # Test connection
 python scripts/migration_status.py
-\`\`\`
+```
 
 #### **Migration Failures**
-\`\`\`bash
+```bash
 # For local development
 python scripts/migration_status.py
 python scripts/manual_upgrade.py
@@ -321,17 +321,17 @@ vercel --prod --force
 
 # 4. If auto-migration keeps failing, check database manually
 python scripts/migration_status.py  # (with production DATABASE_URL)
-\`\`\`
+```
 
 #### **Cold Start Timeouts**
-\`\`\`bash
+```bash
 # Increase timeout in vercel.json
 "functions": {
   "api/index.py": {
     "maxDuration": 30
   }
 }
-\`\`\`
+```
 
 #### **Import Errors**
 - Ensure all imports are in `api/index.py`
@@ -341,17 +341,17 @@ python scripts/migration_status.py  # (with production DATABASE_URL)
 ### **Debugging**
 
 #### **Check Vercel Logs**
-\`\`\`bash
+```bash
 vercel logs your-deployment-url
-\`\`\`
+```
 
 #### **Local Development**
-\`\`\`bash
+```bash
 vercel dev
-\`\`\`
+```
 
 #### **Database Issues**
-\`\`\`bash
+```bash
 # Backup before troubleshooting
 python scripts/backup_database.py backup
 
@@ -361,7 +361,7 @@ python scripts/migration_status.py
 # Reset if needed (CAUTION: Data loss)
 python scripts/rollback_migration.py base
 python scripts/manual_upgrade.py
-\`\`\`
+```
 
 ## 🔍 Serverless Considerations
 
@@ -381,7 +381,7 @@ python scripts/manual_upgrade.py
 ## 🚀 Production Optimizations
 
 ### **Database Performance**
-\`\`\`python
+```python
 # Connection pooling configuration
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'pool_size': 5,
@@ -392,7 +392,7 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
         'application_name': 'flask_vercel_app'
     }
 }
-\`\`\`
+```
 
 ### **Monitoring**
 - **Health Checks**: `/api/health` endpoint
@@ -491,6 +491,7 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 - ✅ **Testing**: Comprehensive test scripts
 - ✅ **Documentation**: Complete setup and usage guides
 
-**Version**: 2.2.0-flask-cli
-**Last Updated**: December 2024
+**Version**: 3.0.3-flask-cli
+**Python Version**: 3.12.13
+**Last Updated**: August 2026
 **Status**: Production Ready 🚀
