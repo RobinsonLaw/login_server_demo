@@ -586,10 +586,18 @@ def web_profile():
     return render_template('profile.html', user=user, user_posts=user_posts)
 @app.route('/favicon.ico')
 def favicon():
-    return send_from_directory('public', 'favicon.ico')
+    return send_from_directory(
+        os.path.join(app.root_path, 'public'),
+        'favicon.ico',
+        mimetype='image/x-icon'
+    )
 @app.route('/favicon.png')
 def favicon_png():
-    return send_from_directory('public', 'favicon.png')
+    return send_from_directory(
+        os.path.join(app.root_path, 'public'),
+        'favicon.png',
+        mimetype='image/png'
+    )
 
 @app.route('/static/<path:filename>')
 def static_files(filename):
