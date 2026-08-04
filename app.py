@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
+from datetime import datetime,timezone
 import secrets
 import os
 
@@ -60,7 +60,7 @@ class User(db.Model):
     username = db.Column(db.String(50), unique=True, nullable=False, index=True)
     email = db.Column(db.String(100), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda:datetime.now(timezone.utc))
     
     # Relationship
     posts = db.relationship('Post', backref='author', lazy=True, cascade='all, delete-orphan')
@@ -93,8 +93,8 @@ class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     content = db.Column(db.Text, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda:datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda:datetime.now(timezone.utc), onupdate=lambda:datetime.now(timezone.utc))
     
     # Foreign key
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
@@ -457,7 +457,7 @@ def update_post(post_id):
         # Update post
         post.title = data['title'].strip()
         post.content = data['content'].strip()
-        post.updated_at = datetime.utcnow()
+        post.updated_at = datetime.now(timezone.utc)
         
         db.session.commit()
         
@@ -549,7 +549,7 @@ def health_check():
         
         return jsonify({
             "status": "healthy",
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "database": "PostgreSQL with SQLAlchemy - Connected",
             "version": "2.2.0-flask-cli",
             "stats": {
@@ -560,7 +560,7 @@ def health_check():
     except Exception as e:
         return jsonify({
             "status": "unhealthy",
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "database": f"PostgreSQL - Error: {str(e)}",
             "version": "2.0.0"
         }), 503

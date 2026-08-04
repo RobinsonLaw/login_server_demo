@@ -1,0 +1,600 @@
+swagger: "2.0"
+info:
+  title: Flask Vercel Login Server API
+  description: |
+    A comprehensive Flask API server with SQLAlchemy ORM, auto-migration system, and complete web interface.
+    Optimized for Vercel serverless deployment with PostgreSQL database.
+  version: "3.0.3-flask-cli"
+  contact:
+    name: API Support
+    email: support@example.com
+basePath: /
+schemes:
+  - http
+  - https
+consumes:
+  - application/json
+produces:
+  - application/json
+securityDefinitions:
+  sessionAuth:
+    type: apiKey
+    in: cookie
+    name: session
+    description: Flask session cookie for authentication
+tags:
+  - name: Authentication
+    description: User registration, login, and session management
+  - name: Users
+    description: User profile and listing operations
+  - name: Posts
+    description: Blog post CRUD operations
+  - name: System
+    description: Health checks and API information
+definitions:
+  User:
+    type: object
+    properties:
+      id:
+        type: integer
+        format: int64
+        readOnly: true
+      username:
+        type: string
+        maxLength: 50
+      email:
+        type: string
+        format: email
+      created_at:
+        type: string
+        format: date-time
+        readOnly: true
+    required:
+      - username
+      - email
+  UserProfile:
+    allOf:
+      - $ref: '#/definitions/User'
+      - type: object
+        properties:
+          email:
+            type: string
+            format: email
+  Post:
+    type: object
+    properties:
+      id:
+        type: integer
+        format: int64
+        readOnly: true
+      title:
+        type: string
+        maxLength: 200
+      content:
+        type: string
+      created_at:
+        type: string
+        format: date-time
+        readOnly: true
+      updated_at:
+        type: string
+        format: date-time
+        readOnly: true
+      user_id:
+        type: integer
+        format: int64
+      author:
+        type: string
+        readOnly: true
+    required:
+      - title
+      - content
+      - user_id
+  Error:
+    type: object
+    properties:
+      error:
+        type: string
+    required:
+      - error
+  Pagination:
+    type: object
+    properties:
+      page:
+        type: integer
+      per_page:
+        type: integer
+      total:
+        type: integer
+      pages:
+        type: integer
+      has_next:
+        type: boolean
+      has_prev:
+        type: boolean
+  UserListResponse:
+    type: object
+    properties:
+      users:
+        type: array
+        items:
+          $ref: '#/definitions/User'
+      pagination:
+        $ref: '#/definitions/Pagination'
+  PostListResponse:
+    type: object
+    properties:
+      posts:
+        type: array
+        items:
+          $ref: '#/definitions/Post'
+      pagination:
+        $ref: '#/definitions/Pagination'
+  HealthResponse:
+    type: object
+    properties:
+      status:
+        type: string
+        enum: [healthy, unhealthy]
+      timestamp:
+        type: string
+        format: date-time
+      database:
+        type: string
+      platform:
+        type: string
+      version:
+        type: string
+      migration_system:
+        type: string
+      stats:
+        type: object
+        properties:
+          users:
+            type: integer
+          posts:
+            type: integer
+  ApiInfo:
+    type: object
+    properties:
+      message:
+        type: string
+      database:
+        type: string
+      platform:
+        type: string
+      version:
+        type: string
+      features:
+        type: object
+        properties:
+          auto_migration:
+            type: string
+          flask_migrate:
+            type: string
+          fallback_creation:
+            type: string
+      endpoints:
+        type: object
+        additionalProperties:
+          type: string
+paths:
+  /api:
+    get:
+      tags:
+        - System
+      summary: Get API information and endpoint directory
+      responses:
+        '200':
+          description: Successful response with API metadata
+          schema:
+            $ref: '#/definitions/ApiInfo'
+  /api/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            required:
+              - username
+              - email
+              - password
+            properties:
+              username:
+                type: string
+                minLength: 3
+                maxLength: 50
+              email:
+                type: string
+                format: email
+              password:
+                type: string
+                minLength: 6
+      responses:
+        '201':
+          description: User registered successfully
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+              user:
+                $ref: '#/definitions/User'
+        '400':
+          description: Validation error
+          schema:
+            $ref: '#/definitions/Error'
+        '409':
+          description: Username or email already exists
+          schema:
+            $ref: '#/definitions/Error'
+        '500':
+          description: Server error
+          schema:
+            $ref: '#/definitions/Error'
+  /api/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login user
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            required:
+              - username
+              - password
+            properties:
+              username:
+                type: string
+              password:
+                type: string
+      responses:
+        '200':
+          description: Login successful
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+              user:
+                $ref: '#/definitions/User'
+        '400':
+          description: Username and password required
+          schema:
+            $ref: '#/definitions/Error'
+        '401':
+          description: Invalid credentials
+          schema:
+            $ref: '#/definitions/Error'
+        '500':
+          description: Server error
+          schema:
+            $ref: '#/definitions/Error'
+  /api/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Logout user
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Logout successful
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+        '500':
+          description: Server error
+          schema:
+            $ref: '#/definitions/Error'
+  /api/profile:
+    get:
+      tags:
+        - Users
+      summary: Get authenticated user profile
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: User profile
+          schema:
+            type: object
+            properties:
+              user:
+                $ref: '#/definitions/UserProfile'
+        '401':
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/Error'
+        '404':
+          description: User not found
+          schema:
+            $ref: '#/definitions/Error'
+        '500':
+          description: Server error
+          schema:
+            $ref: '#/definitions/Error'
+    put:
+      tags:
+        - Users
+      summary: Update authenticated user profile
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              email:
+                type: string
+                format: email
+              password:
+                type: string
+                minLength: 6
+      responses:
+        '200':
+          description: Profile updated successfully
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+              user:
+                $ref: '#/definitions/UserProfile'
+        '400':
+          description: Validation error
+          schema:
+            $ref: '#/definitions/Error'
+        '401':
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/Error'
+        '404':
+          description: User not found
+          schema:
+            $ref: '#/definitions/Error'
+        '409':
+          description: Email already exists
+          schema:
+            $ref: '#/definitions/Error'
+        '500':
+          description: Server error
+          schema:
+            $ref: '#/definitions/Error'
+  /api/users:
+    get:
+      tags:
+        - Users
+      summary: Get all users (paginated)
+      parameters:
+        - name: page
+          in: query
+          type: integer
+          default: 1
+        - name: per_page
+          in: query
+          type: integer
+          default: 10
+          maximum: 50
+      responses:
+        '200':
+          description: Paginated list of users
+          schema:
+            $ref: '#/definitions/UserListResponse'
+        '500':
+          description: Server error
+          schema:
+            $ref: '#/definitions/Error'
+  /api/posts:
+    get:
+      tags:
+        - Posts
+      summary: Get all posts (paginated). Guests see only admin posts; authenticated users see all.
+      parameters:
+        - name: page
+          in: query
+          type: integer
+          default: 1
+        - name: per_page
+          in: query
+          type: integer
+          default: 10
+          maximum: 50
+      responses:
+        '200':
+          description: Paginated list of posts
+          schema:
+            $ref: '#/definitions/PostListResponse'
+        '500':
+          description: Server error
+          schema:
+            $ref: '#/definitions/Error'
+    post:
+      tags:
+        - Posts
+      summary: Create a new post
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            required:
+              - title
+              - content
+            properties:
+              title:
+                type: string
+                minLength: 1
+                maxLength: 200
+              content:
+                type: string
+                minLength: 1
+      responses:
+        '201':
+          description: Post created successfully
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+              post:
+                $ref: '#/definitions/Post'
+        '400':
+          description: Title and content required
+          schema:
+            $ref: '#/definitions/Error'
+        '401':
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/Error'
+        '500':
+          description: Server error
+          schema:
+            $ref: '#/definitions/Error'
+  /api/posts/{id}:
+    get:
+      tags:
+        - Posts
+      summary: Get a specific post by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: integer
+      responses:
+        '200':
+          description: Post details
+          schema:
+            type: object
+            properties:
+              post:
+                $ref: '#/definitions/Post'
+        '404':
+          description: Post not found
+          schema:
+            $ref: '#/definitions/Error'
+        '500':
+          description: Server error
+          schema:
+            $ref: '#/definitions/Error'
+    put:
+      tags:
+        - Posts
+      summary: Update a post (owner only)
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: integer
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            required:
+              - title
+              - content
+            properties:
+              title:
+                type: string
+                minLength: 1
+                maxLength: 200
+              content:
+                type: string
+                minLength: 1
+      responses:
+        '200':
+          description: Post updated successfully
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+              post:
+                $ref: '#/definitions/Post'
+        '400':
+          description: Validation error
+          schema:
+            $ref: '#/definitions/Error'
+        '401':
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/Error'
+        '403':
+          description: Unauthorized to update this post
+          schema:
+            $ref: '#/definitions/Error'
+        '404':
+          description: Post not found
+          schema:
+            $ref: '#/definitions/Error'
+        '500':
+          description: Server error
+          schema:
+            $ref: '#/definitions/Error'
+    delete:
+      tags:
+        - Posts
+      summary: Delete a post (owner only)
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: integer
+      responses:
+        '200':
+          description: Post deleted successfully
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+        '401':
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/Error'
+        '403':
+          description: Unauthorized to delete this post
+          schema:
+            $ref: '#/definitions/Error'
+        '404':
+          description: Post not found
+          schema:
+            $ref: '#/definitions/Error'
+        '500':
+          description: Server error
+          schema:
+            $ref: '#/definitions/Error'
+  /api/health:
+    get:
+      tags:
+        - System
+      summary: Health check endpoint
+      responses:
+        '200':
+          description: Service is healthy
+          schema:
+            $ref: '#/definitions/HealthResponse'
+        '503':
+          description: Service is unhealthy
+          schema:
+            $ref: '#/definitions/HealthResponse'

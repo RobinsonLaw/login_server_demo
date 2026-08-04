@@ -1,3 +1,4 @@
+flask_admin = False
 import json
 import os
 from flask import Flask, request, jsonify, session, render_template, redirect, url_for,send_from_directory
@@ -9,7 +10,10 @@ import secrets
 import logging
 from dotenv import load_dotenv
 from importlib.metadata import version as flask_version_info
-
+if flask_admin:
+    from flask_admin import Admin
+    from flask_admin.contrib.sqla import ModelView
+from flasgger import Swagger, swag_from
 load_dotenv()
 
 # Load Flask version dynamically
@@ -132,7 +136,7 @@ class Post(db.Model):
     title = db.Column(db.String(200), nullable=False)
     content = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     
     def to_dict(self, include_author=True):
@@ -162,7 +166,42 @@ with app.app_context():
             
     except Exception as e:
         print(f"❌ Database initialization error: {e}")
+if flask_admin:
+    admin = Admin(app, name='Login Server Admin')
+    admin.add_view(ModelView(User, db.session))
+    admin.add_view(ModelView(Post, db.session))
+# Configure Flasgger with ReDoc interface enabled
+# swagger_config = {
+#     "headers": [],
+#     "specs": [
+#         {
+#             "endpoint": 'apispec',
+#             "route": '/apispec.json',
+#             "rule_filter": lambda rule: True,  # Include all routes automatically
+#             "model_filter": lambda model: True,
+#         }
+#     ],
+#     "static_url_path": "/flasgger_static",
+#     "swagger_ui": True,
+#     "specs_route": "/apidocs/"
+# }
 
+# template = {
+#     "swagger": "2.0",
+#     "info": {
+#         "title": "Login Server API",
+#         "description": "API Overview & Documentation",
+#         "version": app_version
+#     }
+# }
+
+# swagger = Swagger(app, config=swagger_config, template=template, parse=True)
+swagger = Swagger(app, template_file='swagger.yml')
+@app.before_request
+def update_swagger_host():
+    # Automatically update Swagger host when fetching spec
+    if request.path == '/apispec_1.json':
+        swagger.template['host'] = get_environment_info()['host']
 # Helper function
 def require_auth():
     if 'user_id' not in session:
@@ -171,8 +210,10 @@ def require_auth():
 
 # Routes
 @app.route('/')
-@app.route('/api')
 def home():
+    return redirect(url_for('web_home'))
+@app.route('/api')
+def api():
     return jsonify({
         "message": "Flask API Server on Vercel",
         "database": "PostgreSQL with SQLAlchemy",
@@ -406,7 +447,8 @@ def get_posts():
             else:
                 posts_query = Post.query.filter_by(user_id=None)  # No posts
 
-        posts = Post.query.order_by(Post.created_at.desc()).paginate(
+       # FIXED: Call .paginate() on posts_query instead of Post.query
+        posts = posts_query.paginate(
             page=page,
             per_page=per_page,
             error_out=False
@@ -610,20 +652,42 @@ def favicon_png():
 @app.route('/static/<path:filename>')
 def static_files(filename):
     return send_from_directory('public/static', filename)
-# @app.route('/static/<path:filename>')
-# def static_files(filename):
-#     folder = os.path.join(app.root_path, 'public/static')
-#     print("Serving static file:", filename)
-#     print("Looking in folder:", folder)
-#     return send_from_directory(folder, filename)
-# @app.route('/favicon.ico')
-# def favicon():
-#     return send_from_directory(
-#         os.path.join(app.root_path, 'static'),
-#         'favicon.ico',
-#         mimetype='image/vnd.microsoft.icon'
-#     )    
-# Error handlers
+
+@app.route('/host')
+def get_environment_info():
+    """Resolves current host, environment type, and detection source."""
+    
+    # 1. Custom Domain via Reverse Proxy (e.g., web.iotchat.link)
+    if request.headers.get("X-Forwarded-Host"):
+        host = request.headers.get("X-Forwarded-Host")
+        source = "X-Forwarded-Host"
+    # 2. Production Environment Variable
+    elif os.getenv("VERCEL_PROJECT_PRODUCTION_URL"):
+        host = os.getenv("VERCEL_PROJECT_PRODUCTION_URL")
+        source = "VERCEL_PROJECT_PRODUCTION_URL"
+    # 3. Preview Environment Variable
+    elif os.getenv("VERCEL_URL"):
+        host = os.getenv("VERCEL_URL")
+        source = "VERCEL_URL"
+    # 4. Request Host Header / Local Fallback
+    else:
+        host = request.headers.get("Host", "localhost")
+        source = "Host Header"
+
+    # Environment Tagging Logic
+    if "localhost" in host or "127.0.0.1" in host:
+        env_tag = "local-development"
+    elif os.getenv("VERCEL_ENV") == "production" or host == os.getenv("VERCEL_PROJECT_PRODUCTION_URL"):
+        env_tag = "production"
+    else:
+        env_tag = "preview"
+
+    return {
+        "host": host,
+        "environment": env_tag,
+        "detection_source": source
+    }
+
 @app.errorhandler(404)
 def not_found(error):
     return jsonify({"error": "Endpoint not found"}), 404
