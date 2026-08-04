@@ -1,16 +1,24 @@
+import json
+import os
 from flask import Flask, request, jsonify, session, render_template, redirect, url_for,send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
+from datetime import datetime, timezone
 import secrets
-import os
 import logging
 from dotenv import load_dotenv
+from importlib.metadata import version as flask_version_info
+
 load_dotenv()
-# Initialize Flask app
-# app = Flask(__name__)
-ADMIN_USERNAME = os.getenv('ADMIN_USERNAME')
+
+# Load Flask version dynamically
+try:
+    app_version = f"{flask_version_info('flask')}-flask-cli"
+except Exception:
+    app_version = 'unknown-flask-cli'
+
+# Initialize Flask appUSERNAME = os.getenv('ADMIN_USERNAME')
 app = Flask(__name__, static_folder=None)
 # Fix for Flask 3.0+: prevents escaping < and > to \u003C and \u003E
 app.json.ensure_ascii = False
@@ -96,7 +104,7 @@ class User(db.Model):
     username = db.Column(db.String(50), unique=True, nullable=False, index=True)
     email = db.Column(db.String(100), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     
     # Relationship
     posts = db.relationship('Post', backref='author', lazy=True, cascade='all, delete-orphan')
@@ -123,8 +131,8 @@ class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     content = db.Column(db.Text, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     
     def to_dict(self, include_author=True):
@@ -169,7 +177,7 @@ def home():
         "message": "Flask API Server on Vercel",
         "database": "PostgreSQL with SQLAlchemy",
         "platform": "Vercel Serverless",
-        "version": "2.2.0-flask-cli",
+            "version": app_version,
         "features": {
             "auto_migration": "Enabled",
             "flask_migrate": "Integrated",
@@ -446,7 +454,7 @@ def update_post(post_id):
         
         post.title = data['title'].strip()
         post.content = data['content'].strip()
-        post.updated_at = datetime.utcnow()
+        post.updated_at = datetime.now(timezone.utc)
         
         db.session.commit()
         
@@ -495,10 +503,10 @@ def health_check():
         
         return jsonify({
             "status": "healthy",
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "database": "PostgreSQL with SQLAlchemy - Connected",
             "platform": "Vercel Serverless",
-            "version": "2.2.0-flask-cli",
+        "version": app_version,
             "migration_system": "Flask-Migrate with Auto-Upgrade + Flask CLI",
             "stats": {
                 "users": user_count,
@@ -508,10 +516,10 @@ def health_check():
     except Exception as e:
         return jsonify({
             "status": "unhealthy",
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "database": f"PostgreSQL - Error: {str(e)}",
             "platform": "Vercel Serverless",
-            "version": "2.2.0-flask-cli"
+            "version": app_version
         }), 503
 
 # HTML Pages Routes

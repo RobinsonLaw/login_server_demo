@@ -93,7 +93,7 @@ export DATABASE_URL="postgresql://user:password@host:port/database"
 export SECRET_KEY="your-secret-key"
 
 # Initialize auto-migration system (run once)
-python scripts/init_migrations.py
+python scripts/init_migrations_fixed.py
 
 # Setup database with sample data
 python scripts/setup_database.py
