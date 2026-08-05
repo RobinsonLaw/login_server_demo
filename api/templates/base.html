@@ -47,7 +47,7 @@
     <footer class="bg-white border-t mt-12">
         <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
             <div class="text-center text-gray-500 text-sm">
-                <p>&copy; 2024 Flask API Server. Built with Flask, SQLAlchemy, and deployed on Vercel.</p>
+                <p>&copy; <span id = "deploy-year">2024</span> Flask API Server. Built with Flask, SQLAlchemy, and deployed on Vercel.</p>
             </div>
         </div>
     </footer>
@@ -112,8 +112,44 @@
             }
         }
 
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', updateAuthSection);
+        async function loadDeploymentYear() {
+            const yearElement = document.getElementById('deploy-year');
+            if (!yearElement) return;
+
+            // 1. Check if the deployment year is already stored in browser memory
+            const cachedYear = sessionStorage.getItem('deploy_year');
+            if (cachedYear) {
+                console.log('⚡ [Deploy Year] Loaded from sessionStorage cache:', cachedYear);
+                yearElement.textContent = cachedYear;
+                return; // Exit immediately without making an HTTP request
+            }
+
+            // 2. Fetch from the API only if not in cache
+            console.log('🌐 [Deploy Year] Cache miss. Fetching from API...');
+            try {
+                const response = await fetch(`${API_BASE}/deployment-info`);
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    if (data.date) {
+                        const deployYear = new Date(data.date).getFullYear();
+                        
+                        // Save to sessionStorage and update DOM
+                        sessionStorage.setItem('deploy_year', deployYear);
+                        yearElement.textContent = deployYear;
+                        console.log('✅ [Deploy Year] Fetched from API and saved to cache:', deployYear);
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching deployment info:', error);
+            }
+        }
+
+        // Call on page load alongside updateAuthSection
+        document.addEventListener('DOMContentLoaded', () => {
+            updateAuthSection();
+            loadDeploymentYear();
+        });
     </script>
 </body>
 </html>

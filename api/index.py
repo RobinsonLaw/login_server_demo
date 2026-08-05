@@ -1,6 +1,9 @@
 flask_admin = False
 import json
 import os
+import requests
+import sys
+import flask
 from flask import Flask, request, jsonify, session, render_template, redirect, url_for,send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -15,6 +18,40 @@ if flask_admin:
     from flask_admin.contrib.sqla import ModelView
 from flasgger import Swagger, swag_from
 load_dotenv()
+
+
+# def get_environment_info2():
+#     import sys
+#     import flask
+#     host = 'localhost:5001'
+#     try:
+#         if request:
+#             host = request.host
+#     except Exception:
+#         pass
+
+#     db_url = os.environ.get('DATABASE_URL') or os.environ.get('POSTGRES_URL') or ''
+#     masked_db = ''
+#     if db_url:
+#         try:
+#             remaining = db_url.split('@')[-1]
+#             parts = remaining.split('/')
+#             if len(parts) >= 2:
+#                 host_port = parts[0]
+#                 db_name = parts[1].split('?')[0]
+#                 masked_db = f"{host_port}/{db_name}"
+#             else:
+#                 masked_db = remaining
+#         except Exception:
+#             masked_db = 'undisclosed'
+
+#     return {
+#         'host': host,
+#         'environment': os.getenv('FLASK_ENV', 'development'),
+#         'python_version': sys.version.split()[0],
+#         'flask_version': flask.__version__,
+#         'database': masked_db
+#     }
 
 # Load Flask version dynamically
 try:
@@ -214,11 +251,13 @@ def home():
     return redirect(url_for('web_home'))
 @app.route('/api')
 def api():
-    return jsonify({
+    """Returns the raw Python dictionary for API information."""
+    return {
         "message": "Flask API Server on Vercel",
         "database": "PostgreSQL with SQLAlchemy",
         "platform": "Vercel Serverless",
-            "version": app_version,
+        "version": app_version,
+        "environment_info": get_environment_info(),
         "features": {
             "auto_migration": "Enabled",
             "flask_migrate": "Integrated",
@@ -238,7 +277,7 @@ def api():
             "DELETE /api/posts/{id}": "Delete post (requires login)",
             "GET /api/health": "Health check"
         }
-    })
+    }
 
 @app.route('/api/register', methods=['POST'])
 def register():
@@ -653,7 +692,7 @@ def favicon_png():
 def static_files(filename):
     return send_from_directory('public/static', filename)
 
-@app.route('/host')
+@app.route('/api/host')
 def get_environment_info():
     """Resolves current host, environment type, and detection source."""
     
@@ -687,6 +726,34 @@ def get_environment_info():
         "environment": env_tag,
         "detection_source": source
     }
+
+@app.route('/api/deployment-info', methods=['GET'])
+def deployment_info():
+    try:
+        vercel_token = os.getenv('VERCEL_TOKEN')
+        # project_id = os.getenv('VERCEL_PROJECT_ID')
+        # team_id = os.environ.get('VERCEL_TEAM_ID')
+        if not vercel_token:
+            return jsonify({"error": "Missing Vercel credentials"}), 400
+        
+        url = f"https://api.vercel.com/v6/deployments?limit=1"
+        headers = {"Authorization": f"Bearer {vercel_token}"}
+        
+        response = requests.get(url, headers=headers)
+        deployments = response.json()
+        
+        if deployments['deployments']:
+            latest = deployments['deployments'][0]
+            return jsonify({
+                "date": latest['created'],
+                "status": latest['state'],
+                "url": latest['url']
+            }), 200
+        
+        return jsonify({"error": "No deployments found"}), 404
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.errorhandler(404)
 def not_found(error):
