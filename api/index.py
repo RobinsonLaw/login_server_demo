@@ -8,7 +8,7 @@ from flask import Flask, request, jsonify, session, render_template, redirect, u
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import secrets
 import logging
 from dotenv import load_dotenv
@@ -65,6 +65,7 @@ app = Flask(__name__, static_folder=None)
 app.json.ensure_ascii = False
 # Vercel-specific configuration
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', secrets.token_hex(16))
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
@@ -207,6 +208,12 @@ if flask_admin:
     admin = Admin(app, name='Login Server Admin')
     admin.add_view(ModelView(User, db.session))
     admin.add_view(ModelView(Post, db.session))
+
+
+# 2. Automatically refresh/mark sessions as permanent so the timeout applies
+@app.before_request
+def make_session_permanent():
+    session.permanent = True
 # Configure Flasgger with ReDoc interface enabled
 # swagger_config = {
 #     "headers": [],
