@@ -111,7 +111,9 @@
                             <a href="/web/posts/{{ post.id }}" class="text-blue-600 hover:text-blue-800 text-sm">
                                 <i class="fas fa-eye"></i>
                             </a>
-                            <button onclick="deletePost({{ post.id }})" class="text-red-600 hover:text-red-800 text-sm">
+                            <button 
+                                data-post-id="{{ post.id }}" 
+                                class="delete-btn text-red-600 hover:text-red-800 text-sm">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -178,6 +180,14 @@
             submitBtn.disabled = false;
             submitText.textContent = 'Update Profile';
             submitSpinner.classList.add('hidden');
+        }
+    });
+
+    document.addEventListener('click', (e) => {
+        // Check if the clicked element (or its child icon) is inside a .delete-btn
+        const btn = e.target.closest('.delete-btn');
+        if (btn) {
+            deletePost(btn.dataset.postId);
         }
     });
 

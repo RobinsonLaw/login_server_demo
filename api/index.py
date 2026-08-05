@@ -288,6 +288,10 @@ def api():
 
 @app.route('/api/register', methods=['POST'])
 def register():
+# Toggle Registration On / Off
+    allow_registration = os.getenv('ALLOW_REGISTRATION', 'true').lower() == 'true'
+    if not allow_registration:
+        return jsonify({"error": "Registration is currently disabled"}), 403    
     try:
         data = request.get_json()
         

@@ -78,8 +78,8 @@
 </div>
 
 <script>
-    const postId = {{ post.id }};
-    const postUserId = {{ post.user_id }};
+    const postId = JSON.parse('{{ post.id | tojson }}');
+    const postUserId = JSON.parse('{{ post.user_id | tojson}}');
     
     // Check if current user can edit this post
     async function checkEditPermissions() {
