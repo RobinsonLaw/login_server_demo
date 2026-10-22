@@ -266,6 +266,9 @@ paths:
                 type: string
               user:
                 $ref: '#/definitions/User'
+              token:
+                type: string
+                description: JWT token (RS256) for API authentication
         '400':
           description: Username and password required
           schema:

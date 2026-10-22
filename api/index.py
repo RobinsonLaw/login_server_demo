@@ -11,6 +11,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timezone, timedelta
 import secrets
 import logging
+import jwt
 from dotenv import load_dotenv
 from importlib.metadata import version as flask_version_info
 if flask_admin:
@@ -18,6 +19,40 @@ if flask_admin:
     from flask_admin.contrib.sqla import ModelView
 from flasgger import Swagger, swag_from
 load_dotenv()
+
+# JWT Configuration - RS256 (asymmetric)
+PUBLIC_KEY = """-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAycQH1KXOJk1+gO3hMHyq
+Fa0iLT9aidPX63XGi5UZ8+5IkKrSgzzzkaZtg1XlBvvtyasukepOeDK7UTLMrPUB
+4T52jvueCaSjH+9O/eu6cve1tgRozUrCxC1IE4Xj6eJCejHfsvbdIrXfMKwi05pJ
+YoU4ZHhn+CIoKFVGkiB436VT/wKGssv6Ai/qSximSRn6g8WWCIMQcHhSg10DOjyz
+Ct3PtwZBlodWQf/Y2Rs2bjwPGNDAN1Nc5EFgzNnzLeaIjr4PCSup5QDaPJNGqmQA
+iJ8+l4W1UxmdfZlpSX7CtGxJOBYX80K7Uf38YOXl5E2ese8FfIc21Az/nMAg2YqH
+GQIDAQAB
+-----END PUBLIC KEY-----"""
+
+# Load private key from env var or file
+private_key = os.environ.get("PRIVATE_KEY")
+if private_key is None:
+    private_key_path = os.path.join(os.path.dirname(__file__), "private.pem")
+    if os.path.exists(private_key_path):
+        with open(private_key_path, "rb") as f:
+            private_key = f.read()
+    else:
+        private_key = None
+        print("WARNING: PRIVATE_KEY not found. JWT encoding will not work.")
+
+
+def encode_jwt(user_id, username, hours=1):
+    """Generates a signed JWT with user details valid for given duration (RS256)."""
+    if private_key is None:
+        return None
+    payload = {
+        "user_id": user_id,
+        "username": username,
+        "exp": datetime.now(timezone.utc) + timedelta(hours=hours)
+    }
+    return jwt.encode(payload, private_key, algorithm="RS256")
 
 
 # def get_environment_info2():
@@ -348,10 +383,17 @@ def login():
             session['user_id'] = user.id
             session['username'] = user.username
             
-            return jsonify({
+            # Generate JWT token
+            token = encode_jwt(user.id, user.username, hours=24)
+            
+            response = {
                 "message": "Login successful",
                 "user": user.to_dict()
-            }), 200
+            }
+            if token:
+                response["token"] = token
+            
+            return jsonify(response), 200
         else:
             return jsonify({"error": "Invalid username or password"}), 401
             
